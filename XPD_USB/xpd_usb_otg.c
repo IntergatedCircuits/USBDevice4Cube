@@ -229,6 +229,7 @@ static void USB_prvEpSend(USB_HandleType * pxUSB, uint8_t ucEpNum)
 {
     USB_EndPointHandleType * pxEP = &pxUSB->EP.IN[ucEpNum];
     USB_OTG_GenEndpointType * pxDEP = USB_IEPR(pxUSB, ucEpNum);
+    uint16_t usTransferSize = pxEP->Transfer.Progress;
 
     if (pxEP->Transfer.Progress == 0)
     {
@@ -239,7 +240,7 @@ static void USB_prvEpSend(USB_HandleType * pxUSB, uint8_t ucEpNum)
     else if ((ucEpNum == 0) && (pxEP->Transfer.Progress > pxEP->MaxPacketSize))
     {
         pxDEP->DxEPTSIZ.b.PKTCNT = 1;
-        pxDEP->DxEPTSIZ.b.XFRSIZ = pxEP->MaxPacketSize;
+        pxDEP->DxEPTSIZ.b.XFRSIZ = usTransferSize = pxEP->MaxPacketSize;
     }
     else
     {
@@ -271,6 +272,8 @@ static void USB_prvEpSend(USB_HandleType * pxUSB, uint8_t ucEpNum)
     {
         /* Set DMA start address */
         pxDEP->DxEPDMA = (uint32_t)pxEP->Transfer.Data;
+        pxEP->Transfer.Data += usTransferSize;
+        pxEP->Transfer.Progress -= usTransferSize;
     }
 #endif
     /* EP enable */
@@ -301,7 +304,7 @@ static void USB_prvEpReceive(USB_HandleType * pxUSB, uint8_t ucEpNum)
         uint16_t usPktCnt = (pxEP->Transfer.Progress + pxEP->MaxPacketSize - 1)
                 / pxEP->MaxPacketSize;
         pxDEP->DxEPTSIZ.b.PKTCNT = usPktCnt;
-        pxDEP->DxEPTSIZ.b.XFRSIZ = pxEP->MaxPacketSize * usPktCnt;
+        pxDEP->DxEPTSIZ.b.XFRSIZ = pxEP->Transfer.Progress;
     }
 
 #if (USB_OTG_DMA_SUPPORT != 0)
@@ -1036,30 +1039,49 @@ void USB_vDevIRQHandler(USB_HandleType * pxUSB)
                         /* Clear IT flag */
                         pxDEP->DxEPINT.w = USB_OTG_DOEPINT_XFRC;
 
-                        if (USB_DMA_CONFIG(pxUSB) != 0)
+                        if (ucEpNum > 0)
                         {
-                            pxEP->Transfer.Length = pxEP->MaxPacketSize
-                                                  - pxDEP->DxEPTSIZ.b.XFRSIZ;
-                            pxEP->Transfer.Data  += pxEP->MaxPacketSize;
-                        }
+                            if (USB_DMA_CONFIG(pxUSB) != 0)
+                            {
+                                /* XFRSIZ holds the unfilled byte count
+                                 * after the transfer is complete */
+                                uint16_t usTransferSize =
+                                        pxEP->Transfer.Progress - pxDEP->DxEPTSIZ.b.XFRSIZ;
+                                pxEP->Transfer.Length = usTransferSize;
+                                pxEP->Transfer.Data += usTransferSize;
+                            }
 
-                        /* EP0 packetization requires software handling */
-                        if ((ucEpNum == 0) &&
-                            (pxEP->Transfer.Progress > pxEP->Transfer.Length))
-                        {
-                            USB_prvEpReceive(pxUSB, 0);
-                        }
-                        else
-                        {
                             /* Reception finished */
                             USB_vDataOutCallback(pxUSB, pxEP);
-
-                            if ((USB_DMA_CONFIG(pxUSB) != 0) &&
-                                (ucEpNum == 0) &&
-                                (pxEP->Transfer.Length == 0))
+                        }
+                        else /* EP0 packetization requires software handling */
+                        {
+                            if (USB_DMA_CONFIG(pxUSB) != 0)
                             {
-                                /* this is ZLP, so prepare EP0 for next setup */
-                                USB_prvPrepareSetup(pxUSB);
+                                /* XFRSIZ holds the unfilled byte count
+                                 * after the transfer is complete;
+                                 * EP0 transfers are limited to MPS */
+                                uint16_t usTransferSize =
+                                        pxEP->MaxPacketSize - pxDEP->DxEPTSIZ.b.XFRSIZ;
+                                pxEP->Transfer.Length += usTransferSize;
+                                pxEP->Transfer.Data += usTransferSize;
+
+                                if (pxEP->Transfer.Length == 0)
+                                {
+                                    /* this is ZLP, so prepare EP0 for next setup */
+                                    USB_prvPrepareSetup(pxUSB);
+                                }
+                            }
+
+                            if (pxEP->Transfer.Progress == pxEP->Transfer.Length)
+                            {
+                                /* Reception finished */
+                                USB_vDataOutCallback(pxUSB, pxEP);
+                            }
+                            else
+                            {
+                                /* Transfer next packet */
+                                USB_prvEpReceive(pxUSB, 0);
                             }
                         }
                     }
@@ -1108,29 +1130,29 @@ void USB_vDevIRQHandler(USB_HandleType * pxUSB)
                         /* Clear IT flag */
                         pxDEP->DxEPINT.w = USB_OTG_DIEPINT_XFRC;
 
-                        if (USB_DMA_CONFIG(pxUSB) != 0)
-                        {
-                            pxEP->Transfer.Data     += pxEP->MaxPacketSize;
-                            pxEP->Transfer.Progress -= pxEP->MaxPacketSize;
-                        }
-
-                        /* EP0 packetization requires software handling */
-                        if ((ucEpNum == 0) &&
-                            (pxEP->Transfer.Progress > 0))
-                        {
-                            USB_prvEpSend(pxUSB, 0);
-                        }
-                        else
+                        if (ucEpNum > 0)
                         {
                             /* Transmission complete */
                             USB_vDataInCallback(pxUSB, pxEP);
-
-                            if ((USB_DMA_CONFIG(pxUSB) != 0) &&
-                                (ucEpNum == 0) &&
-                                (pxEP->Transfer.Length == 0))
+                        }
+                        else /* EP0 packetization requires software handling */
+                        {
+                            if (pxEP->Transfer.Progress == 0)
                             {
-                                /* this is ZLP, so prepare EP0 for next setup */
-                                USB_prvPrepareSetup(pxUSB);
+                                /* Transmission complete */
+                                USB_vDataInCallback(pxUSB, pxEP);
+
+                                if ((USB_DMA_CONFIG(pxUSB) != 0) &&
+                                    (pxEP->Transfer.Length == 0))
+                                {
+                                    /* this is ZLP, so prepare EP0 for next setup */
+                                    USB_prvPrepareSetup(pxUSB);
+                                }
+                            }
+                            else
+                            {
+                                /* Transfer next packet */
+                                USB_prvEpSend(pxUSB, 0);
                             }
                         }
                     }
