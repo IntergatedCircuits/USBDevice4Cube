@@ -31,6 +31,8 @@ extern "C"
 /* TODO Include the proper CMSIS device header */
 #include "stm32xxxx.h"
 
+#define HSE_VALUE_Hz               HSE_VALUE
+
 /* Replace type definitions */
 #define USB_TypeDef                __USB_TypeDef
 #define USB_OTG_GlobalTypeDef      __USB_OTG_GlobalTypeDef

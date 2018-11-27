@@ -16,6 +16,9 @@
 
 #define RCC_vClockEnable(A)     A##_EN()
 #define RCC_vClockDisable(A)    A##_DIS()
-#define RCC_ulClockFreq_Hz(A)   HAL_RCC_GetHCLKFreq()
+
+#define RCC_CLKFREQ_HZ_HSE      HSE_VALUE
+#define RCC_CLKFREQ_HZ_HCLK     HAL_RCC_GetHCLKFreq()
+#define RCC_ulClockFreq_Hz(A)   RCC_CLKFREQ_HZ_##A
 
 #endif /* __XPD_RCC_H_ */
