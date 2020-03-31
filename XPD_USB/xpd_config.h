@@ -50,7 +50,7 @@ extern "C"
 
 /* Correct bit namings */
 #ifdef USB_LPMCSR_LMPEN
-#define USB_LPMCSR_LPMEN
+#define USB_LPMCSR_LPMEN           USB_LPMCSR_LMPEN
 #endif
 
 /* TODO Copy USB peripheral registers structures from a compatible device header */
