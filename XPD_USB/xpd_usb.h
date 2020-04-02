@@ -162,9 +162,6 @@ typedef enum
 #define         USB_FLAG_CLEAR(HANDLE, FLAG_NAME)       \
     (USB_REG_BIT(HANDLE,ISTR,FLAG_NAME) = 0)
 
-/** @brief USB Wake up line number */
-#define         USB_WAKEUP_EXTI_LINE            18
-
 /** @} */
 
 /** @addtogroup USB_Exported_Functions

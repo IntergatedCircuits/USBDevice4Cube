@@ -127,12 +127,6 @@ typedef enum
 #define         USB_FLAG_CLEAR(HANDLE, FLAG_NAME)    \
     ((HANDLE)->Inst->GINTSTS.w = USB_OTG_GINTSTS_##FLAG_NAME)
 
-/** @brief USB OTG FS Wake up line number */
-#define USB_OTG_FS_WAKEUP_EXTI_LINE     18
-
-/** @brief USB OTG HS Wake up line number */
-#define USB_OTG_HS_WAKEUP_EXTI_LINE     20
-
 
 #define USB_OTG_GINTMSK_SOF             USB_OTG_GINTMSK_SOFM
 #define USB_OTG_GINTMSK_MMIS            USB_OTG_GINTMSK_MMISM
