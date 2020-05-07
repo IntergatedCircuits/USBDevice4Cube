@@ -8,6 +8,7 @@ extern "C"
 
 #include <xpd_common.h>
 
+#if defined(USE_HAL_DRIVER)
 __STATIC_INLINE void XPD_vDelay_ms(uint32_t ulMilliseconds)
 {
     HAL_Delay(ulMilliseconds);
@@ -28,6 +29,7 @@ __STATIC_INLINE XPD_ReturnType XPD_eWaitForDiff(volatile uint32_t * pulVarAddres
     *pulTimeout -= HAL_GetTick() - tickstart;
     return XPD_OK;
 }
+#endif
 
 #ifdef __cplusplus
 }
