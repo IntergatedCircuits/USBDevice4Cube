@@ -1005,6 +1005,7 @@ typedef struct {
     __IO uint32_t HNPTXSTS;                                 /*!<  Non Periodic Tx FIFO/Queue Sts reg           02Ch*/
          uint32_t __RESERVED0[2];
     union {
+#ifdef USB_OTG_GCCFG_VBDEN
         struct {
             __IO uint32_t DCDET : 1;                        /*!< Data contact detection (DCD) status */
             __IO uint32_t PDET : 1;                         /*!< Primary detection (PD) status */
@@ -1017,8 +1018,22 @@ typedef struct {
             __IO uint32_t PDEN : 1;                         /*!< Primary detection (PD) mode enable*/
             __IO uint32_t SDEN : 1;                         /*!< Secondary detection (SD) mode enable */
             __IO uint32_t VBDEN : 1;                        /*!< Secondary detection (SD) mode enable */
-                 uint32_t __RESERVED1 : 10;
+            __IO uint32_t OTGIDEN: 1;
+            __IO uint32_t PHYHSEN: 1;
+                 uint32_t __RESERVED1 : 8;
         } b;
+#else
+        struct {
+                 uint32_t __RESERVED0 : 16;
+            __IO uint32_t PWRDWN : 1;                       /*!< Power down */
+                 uint32_t __RESERVED1 : 1;
+            __IO uint32_t VBUSASEN : 1;                     /*!< Enable the VBUS sensing device */
+            __IO uint32_t VBUSBSEN : 1;                     /*!< Enable the VBUS sensing device */
+            __IO uint32_t SOFOUTEN : 1;                     /*!< SOF output enable */
+            __IO uint32_t NOVBUSSENS : 1;                   /*!< VBUS sensing disable option*/
+                 uint32_t __RESERVED2 : 10;
+        } b;
+#endif
         __IO uint32_t w;
     } GCCFG;                                                /* General Purpose IO Register                     038h*/
     __IO uint32_t CID;                                      /* User ID Register                                03Ch*/
