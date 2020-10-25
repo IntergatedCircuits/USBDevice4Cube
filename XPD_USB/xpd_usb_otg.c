@@ -622,10 +622,9 @@ static void USB_prvPhyInit(USB_HandleType * pxUSB, USB_PHYType ePHY)
     {
         /* Select FS Embedded PHY */
         USB_REG_BIT(pxUSB, GUSBCFG, PHYSEL) = 1;
+        USB_REG_BIT(pxUSB, GCCFG, PWRDWN) = 1;
 
         USB_prvReset(pxUSB);
-
-        pxUSB->Inst->GCCFG.w = USB_OTG_GCCFG_PWRDWN;
     }
 }
 
