@@ -95,11 +95,21 @@ typedef struct {
 #define USB_DMA_CONFIG(HANDLE)      0
 #endif
 
+#ifndef STS_GOUT_NAK
 #define STS_GOUT_NAK                (1 << USB_OTG_GRXSTSP_PKTSTS_Pos)
+#endif
+#ifndef STS_DATA_UPDT
 #define STS_DATA_UPDT               (2 << USB_OTG_GRXSTSP_PKTSTS_Pos)
+#endif
+#ifndef STS_XFER_COMP
 #define STS_XFER_COMP               (3 << USB_OTG_GRXSTSP_PKTSTS_Pos)
+#endif
+#ifndef STS_SETUP_COMP
 #define STS_SETUP_COMP              (4 << USB_OTG_GRXSTSP_PKTSTS_Pos)
+#endif
+#ifndef STS_SETUP_UPDT
 #define STS_SETUP_UPDT              (6 << USB_OTG_GRXSTSP_PKTSTS_Pos)
+#endif
 
 #define USB_ALL_TX_FIFOS            0x10
 
@@ -522,49 +532,50 @@ static void USB_prvCtrlEpOpen(USB_HandleType * pxUSB)
 #if !defined(USB_HS_PHYC_TUNE_VALUE)
 #define USB_HS_PHYC_TUNE_VALUE    0x00000F13
 #endif
+
+static const struct {
+    uint32_t HseFreq_Hz;
+    uint8_t Pll1Sel;
+} usb_axPhycPllHseTable[] = {
+    { 12000000, 0 },
+    { 12500000, 2 }, /* also 1 */
+    { 16000000, 3 },
+    { 24000000, 4 },
+    { 25000000, 5 }, /* also 6 */
+    { 32000000, 7 },
+};
+
 static void USB_prvPhycInit(void)
 {
+    uint32_t ulTimeout = 2;
     RCC_vClockEnable(RCC_POS_USBPHYC);
 
-    /* Enable LDO */
-    PHYC_REG_BIT(LDO,DISABLE) = 0;
+    /* Enable LDO by setting the disable bit (no joke)
+     * https://community.st.com/s/question/0D53W00000V1BX2SAN/stm32f723-usbphyc-ldo-control-documentationhal-bug */
+    PHYC_REG_BIT(LDO, DISABLE) = 1;
 
     if (XPD_OK == XPD_eWaitForMatch(&USB_HS_PHYC->LDO.w,
-            USB_HS_PHYC_LDO_STATUS, USB_HS_PHYC_LDO_STATUS, 2))
+            USB_HS_PHYC_LDO_STATUS, USB_HS_PHYC_LDO_STATUS, &ulTimeout))
     {
-        /* Control the tuning interface of the High Speed PHY */
-        USB_HS_PHYC->TUNE.w |= USB_HS_PHYC_TUNE_VALUE;
+        uint8_t i;
+        uint32_t ulHseFreq_Hz = RCC_ulOscFreq_Hz(HSE);
 
-        switch (RCC_ulOscFreq_Hz(HSE))
+        /* Set predefined tuning parameters */
+        USB_HS_PHYC->TUNE.w = USB_HS_PHYC_TUNE_VALUE;
+
+        for (i = 0; i < ARRAY_SIZE(usb_axPhycPllHseTable); i++)
         {
-            case 12000000:
-                USB_HS_PHYC->PLL.w = (0 << USB_HS_PHYC_PLL_PLLSEL_Pos)
-                    | USB_HS_PHYC_PLL_PLLEN;
+            /* Look up the PLL selector value for the given HSE frequency */
+            if (usb_axPhycPllHseTable[i].HseFreq_Hz == ulHseFreq_Hz)
+            {
+                /* Apply setting and enable PLL */
+                USB_HS_PHYC->PLL1.w = USB_HS_PHYC_PLL1_PLLEN |
+                        usb_axPhycPllHseTable[i].Pll1Sel << USB_HS_PHYC_PLL1_PLLSEL_Pos;
                 break;
-            case 12500000:
-                USB_HS_PHYC->PLL.w = (2 << USB_HS_PHYC_PLL_PLLSEL_Pos)
-                    | USB_HS_PHYC_PLL_PLLEN;
-                break;
-            case 16000000:
-                USB_HS_PHYC->PLL.w = (3 << USB_HS_PHYC_PLL_PLLSEL_Pos)
-                    | USB_HS_PHYC_PLL_PLLEN;
-                break;
-            case 24000000:
-                USB_HS_PHYC->PLL.w = (4 << USB_HS_PHYC_PLL_PLLSEL_Pos)
-                    | USB_HS_PHYC_PLL_PLLEN;
-                break;
-            case 25000000:
-                USB_HS_PHYC->PLL.w = (5 << USB_HS_PHYC_PLL_PLLSEL_Pos)
-                    | USB_HS_PHYC_PLL_PLLEN;
-                break;
-            case 32000000:
-                USB_HS_PHYC->PLL.w = (7 << USB_HS_PHYC_PLL_PLLSEL_Pos)
-                    | USB_HS_PHYC_PLL_PLLEN;
-                break;
-            default:
-                break;
+            }
         }
 
+        /* PLL stabilization time */
         XPD_vDelay_ms(2);
     }
 }

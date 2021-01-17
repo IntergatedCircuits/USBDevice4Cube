@@ -72,6 +72,14 @@ typedef enum
 #define USB_REG_BIT(HANDLE, REG, BIT) ((HANDLE)->Inst->REG.b.BIT)
 
 /**
+ * @brief USB register bit accessing macro
+ * @param HANDLE: specifies the peripheral handle.
+ * @param REG: specifies the register name.
+ * @param BIT: specifies the register bit name.
+ */
+#define PHYC_REG_BIT(REG, BIT)        (USB_HS_PHYC->REG.b.BIT)
+
+/**
  * @brief  Enable the specified USB interrupt.
  * @param  HANDLE: specifies the USB Handle.
  * @param  IT_NAME: specifies the interrupt to enable.

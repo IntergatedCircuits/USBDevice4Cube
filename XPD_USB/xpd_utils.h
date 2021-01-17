@@ -29,6 +29,22 @@ __STATIC_INLINE XPD_ReturnType XPD_eWaitForDiff(volatile uint32_t * pulVarAddres
     *pulTimeout -= HAL_GetTick() - tickstart;
     return XPD_OK;
 }
+
+__STATIC_INLINE XPD_ReturnType XPD_eWaitForMatch(volatile uint32_t * pulVarAddress, uint32_t ulBitSelector,
+        uint32_t ulMatch, uint32_t * pulTimeout)
+{
+    uint32_t tickstart = HAL_GetTick();
+
+    while ((*pulVarAddress & ulBitSelector) != ulMatch)
+    {
+        if ((HAL_GetTick() - tickstart) > *pulTimeout)
+        {
+            return XPD_TIMEOUT;
+        }
+    }
+    *pulTimeout -= HAL_GetTick() - tickstart;
+    return XPD_OK;
+}
 #endif
 
 #ifdef __cplusplus

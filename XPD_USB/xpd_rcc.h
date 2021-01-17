@@ -40,4 +40,6 @@ __STATIC_INLINE uint32_t RCC_CLKFREQ_HZ_HCLK(void)
 #define RCC_CLKFREQ_HZ_HSE      HSE_VALUE
 #define RCC_ulClockFreq_Hz(A)   RCC_CLKFREQ_HZ_##A()
 
+#define RCC_ulOscFreq_Hz(X)     X##_VALUE
+
 #endif /* __XPD_RCC_H_ */
