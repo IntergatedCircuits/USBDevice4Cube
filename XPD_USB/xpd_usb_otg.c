@@ -95,21 +95,13 @@ typedef struct {
 #define USB_DMA_CONFIG(HANDLE)      0
 #endif
 
-#ifndef STS_GOUT_NAK
-#define STS_GOUT_NAK                (1 << USB_OTG_GRXSTSP_PKTSTS_Pos)
-#endif
-#ifndef STS_DATA_UPDT
-#define STS_DATA_UPDT               (2 << USB_OTG_GRXSTSP_PKTSTS_Pos)
-#endif
-#ifndef STS_XFER_COMP
-#define STS_XFER_COMP               (3 << USB_OTG_GRXSTSP_PKTSTS_Pos)
-#endif
-#ifndef STS_SETUP_COMP
-#define STS_SETUP_COMP              (4 << USB_OTG_GRXSTSP_PKTSTS_Pos)
-#endif
-#ifndef STS_SETUP_UPDT
-#define STS_SETUP_UPDT              (6 << USB_OTG_GRXSTSP_PKTSTS_Pos)
-#endif
+enum {
+    PKTSTS_GOUT_NAK      = (1 << USB_OTG_GRXSTSP_PKTSTS_Pos),
+    PKTSTS_DATA_UPDT     = (2 << USB_OTG_GRXSTSP_PKTSTS_Pos),
+    PKTSTS_XFER_COMP     = (3 << USB_OTG_GRXSTSP_PKTSTS_Pos),
+    PKTSTS_SETUP_COMP    = (4 << USB_OTG_GRXSTSP_PKTSTS_Pos),
+    PKTSTS_SETUP_UPDT    = (6 << USB_OTG_GRXSTSP_PKTSTS_Pos),
+};
 
 #define USB_ALL_TX_FIFOS            0x10
 
@@ -1141,14 +1133,14 @@ void USB_vDevIRQHandler(USB_HandleType * pxUSB)
 
             switch (ulGRXSTSP & USB_OTG_GRXSTSP_PKTSTS_Msk)
             {
-                case STS_DATA_UPDT:
+                case PKTSTS_DATA_UPDT:
                     /* Data packet received */
                     USB_prvReadFifo(pxUSB, pxEP->Transfer.Data, usDataCount);
                     pxEP->Transfer.Length += usDataCount;
                     pxEP->Transfer.Data += usDataCount;
                     break;
 
-                case STS_SETUP_UPDT:
+                case PKTSTS_SETUP_UPDT:
                     /* Setup packet received */
                     USB_prvReadFifo(pxUSB, (uint8_t *)&pxUSB->Setup,
                             sizeof(pxUSB->Setup));
