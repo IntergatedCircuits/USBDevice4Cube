@@ -1453,17 +1453,17 @@ __weak void USB_vAllocateEPs(USB_HandleType * pxUSB)
     }
 
     /* FIFO sizes are in words */
-    ulFifoSize = (ulFifoSize + 3) >> 2;
+    ulFifoSize = (ulFifoSize + sizeof(uint32_t) - 1) / sizeof(uint32_t);
 
     /* Global RX FIFO according to trial and error, thanks to defective documentation */
-    ulFifoOffset = 11           /* to receive SETUP packets on the control endpoint */
+    ulFifoOffset = 13           /* to receive SETUP packets on the control endpoint */
             + (ulFifoSize + 1)  /* each packet gets status info as well */
             + (ucEpCount * 2)   /* transfer complete status is also stored with the last packet */
             + 1;                /* for Global OUT NAK */
     pxUSB->Inst->GRXFSIZ = ulFifoOffset;
 
     /* EP0 TX FIFO */
-    ulFifoSize = (pxUSB->EP.IN[0].MaxPacketSize + 3) >> 2;
+    ulFifoSize = (pxUSB->EP.IN[0].MaxPacketSize + sizeof(uint32_t) - 1) / sizeof(uint32_t);
     if (ulFifoSize < ulMinFifoSizeVal)
     {   ulFifoSize = ulMinFifoSizeVal; }
 
@@ -1477,7 +1477,7 @@ __weak void USB_vAllocateEPs(USB_HandleType * pxUSB)
         ulFifoOffset += ulFifoSize;
 
         /* FIFO sizes are in words */
-        ulFifoSize = (pxUSB->EP.IN[ucEpNum].MaxPacketSize + 3) >> 2;
+        ulFifoSize = (pxUSB->EP.IN[ucEpNum].MaxPacketSize + sizeof(uint32_t) - 1) / sizeof(uint32_t);
         if (ulFifoSize < ulMinFifoSizeVal)
         {   ulFifoSize = ulMinFifoSizeVal; }
 
